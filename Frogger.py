@@ -1,7 +1,7 @@
 import pygame
 import heapq
 import sys
-import random 
+import random
 
 # Inicializamos pygame
 pygame.init()
@@ -14,30 +14,35 @@ pygame.display.set_caption("Frogger con A*")
 # Colores
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
+RED = (255, 0, 0)
 
 # Configuración del juego
 TILE_SIZE = 30
 ROWS, COLS = HEIGHT // TILE_SIZE, WIDTH // TILE_SIZE
 
 # Rana (jugador)
-frog_pos = (ROWS - 1, random.randint(0, COLS - 1))  # Posición inicial (abajo en el centro)
-goal_pos = (0, random.randint(0, COLS - 1))  # Meta (arriba en el centro)
+frog_pos = (ROWS - 1, random.randint(0, COLS - 1))  # Posición inicial (abajo)
+goal_pos = (0, random.randint(0, COLS - 1))  # Meta (arriba)
 
 # Lista de obstáculos (cada obstáculo es un diccionario con su posición y dirección)
 obstacles = []
 level = 1  # Nivel inicial
 
 # Cargar imágenes
-player_img = pygame.image.load("SEMANA 9/caballo.png")
+player_img = pygame.image.load("caballo.png")
 player_img = pygame.transform.scale(player_img, (TILE_SIZE, TILE_SIZE))
 
-obstacle_img = pygame.image.load("SEMANA 9/cuchillo.png")
+obstacle_img = pygame.image.load("cuchillo.png")
 obstacle_img = pygame.transform.scale(obstacle_img, (TILE_SIZE, TILE_SIZE))
 
-goal_img = pygame.image.load("SEMANA 9/meta.png")
+goal_img = pygame.image.load("meta.png")
 goal_img = pygame.transform.scale(goal_img, (TILE_SIZE, TILE_SIZE))
 
-# Función para crear obstáculos
+# Funciones auxiliares para convertir posiciones a letras (A1, B2, etc.)
+def get_cell_name(row, col):
+    return chr(65 + row) + str(col + 1)
+
+# Funciones para crear y mover obstáculos
 def create_obstacles():
     global obstacles
     obstacles = []
@@ -48,25 +53,6 @@ def create_obstacles():
             col = (j + i) % COLS if direction == 1 else (COLS - 1 - j - i) % COLS
             obstacles.append({'row': i, 'col': col, 'dir': direction, 'speed': speed})
 
-# Función para dibujar la cuadrícula
-def draw_grid(frog_pos):
-    for row in range(ROWS):
-        for col in range(COLS):
-            rect = pygame.Rect(col * TILE_SIZE, row * TILE_SIZE, TILE_SIZE, TILE_SIZE)
-            pygame.draw.rect(WINDOW, WHITE, rect)
-            pygame.draw.rect(WINDOW, BLACK, rect, 1)
-    
-    # Dibujar jugador (rana)
-    WINDOW.blit(player_img, (frog_pos[1] * TILE_SIZE, frog_pos[0] * TILE_SIZE))
-
-    # Dibujar meta
-    WINDOW.blit(goal_img, (goal_pos[1] * TILE_SIZE, goal_pos[0] * TILE_SIZE))
-
-    # Dibujar obstáculos
-    for obs in obstacles:
-        WINDOW.blit(obstacle_img, (obs['col'] * TILE_SIZE, obs['row'] * TILE_SIZE))
-
-# Función para mover los obstáculos
 def move_obstacles():
     for obs in obstacles:
         obs['col'] += obs['dir'] * obs['speed']
@@ -124,12 +110,42 @@ def a_star_search(start, goal, game_map):
     path.reverse()
     return path
 
+# Dibujar la cuadrícula y los elementos del juego
+def draw_grid(frog_pos, path=None):
+    for row in range(ROWS):
+        for col in range(COLS):
+            rect = pygame.Rect(col * TILE_SIZE, row * TILE_SIZE, TILE_SIZE, TILE_SIZE)
+            pygame.draw.rect(WINDOW, WHITE, rect)
+            pygame.draw.rect(WINDOW, BLACK, rect, 1)
+    
+    # Dibujar jugador (rana)
+    WINDOW.blit(player_img, (frog_pos[1] * TILE_SIZE, frog_pos[0] * TILE_SIZE))
+
+    # Dibujar meta
+    WINDOW.blit(goal_img, (goal_pos[1] * TILE_SIZE, goal_pos[0] * TILE_SIZE))
+
+    # Dibujar obstáculos
+    for obs in obstacles:
+        WINDOW.blit(obstacle_img, (obs['col'] * TILE_SIZE, obs['row'] * TILE_SIZE))
+
+    # Dibujar flechas del camino
+    if path:
+        for i in range(len(path) - 1):
+            start = path[i]
+            end = path[i + 1]
+            start_x = start[1] * TILE_SIZE + TILE_SIZE // 2
+            start_y = start[0] * TILE_SIZE + TILE_SIZE // 2
+            end_x = end[1] * TILE_SIZE + TILE_SIZE // 2
+            end_y = end[0] * TILE_SIZE + TILE_SIZE // 2
+            pygame.draw.line(WINDOW, RED, (start_x, start_y), (end_x, end_y), 3)
+
 # Función principal del juego
 def main():
     create_obstacles()  # Crear los obstáculos una vez
     clock = pygame.time.Clock()
     run = True
     frog_pos_current = frog_pos
+    game_over = False  # Bandera para indicar si el juego ha terminado
 
     while run:
         clock.tick(5)  # Controla la velocidad del juego
@@ -138,16 +154,26 @@ def main():
             if event.type == pygame.QUIT:
                 run = False
 
-        game_map = get_game_map()
+        # Solo continuar si el juego no ha terminado
+        if not game_over:
+            game_map = get_game_map()
 
-        # Calcular el camino utilizando A*
-        path = a_star_search(frog_pos_current, goal_pos, game_map)
+            # Calcular el camino utilizando A*
+            path = a_star_search(frog_pos_current, goal_pos, game_map)
 
-        if path is None:
-            print("No se encontró un camino a la meta.")
-            run = False
-        else:
+            if path is None:
+                print("No se encontró un camino a la meta.")
+                WINDOW.fill(WHITE)
+                draw_grid(frog_pos_current)
+                pygame.display.update()
+                continue  # Mantener la ventana abierta, pero sin movimiento adicional
+
             for position in path:
+                # Mostrar en la terminal el movimiento del caballo
+                current_cell = get_cell_name(frog_pos_current[0], frog_pos_current[1])
+                next_cell = get_cell_name(position[0], position[1])
+                print(f"Caballo se mueve de {current_cell} a {next_cell}")
+
                 # Mover la rana a la siguiente posición
                 frog_pos_current = position
 
@@ -155,23 +181,32 @@ def main():
                 move_obstacles()
                 game_map = get_game_map()
 
-                # Si hay un obstáculo en la posición de la rana, termina el juego
+                # Si hay un obstáculo en la posición de la rana, termina el movimiento y el juego
                 if game_map[position[0]][position[1]] == 1:
                     print("El caballo ha sido golpeado por un obstáculo.")
-                    run = False
+                    WINDOW.fill(WHITE)
+                    draw_grid(frog_pos_current)
+                    pygame.display.update()
+                    game_over = True  # Establecer la bandera de que el juego ha terminado
                     break
 
                 # Dibujar en pantalla
                 WINDOW.fill(WHITE)
-                draw_grid(frog_pos_current)
+                draw_grid(frog_pos_current, path=path)
                 pygame.display.update()
                 clock.tick(10)
 
                 # Si la rana llega a la meta
                 if position == goal_pos:
                     print("¡El caballo ha llegado a la meta!")
-                    run = False
+                    game_over = True  # Establecer la bandera de que el juego ha terminado
                     break
+
+        # Si el juego ha terminado, mantener la pantalla abierta sin permitir más movimientos
+        else:
+            WINDOW.fill(WHITE)
+            draw_grid(frog_pos_current)
+            pygame.display.update()
 
     pygame.quit()
     sys.exit()
