@@ -74,12 +74,8 @@ def heuristic(a, b):
 
 # Algoritmo A*
 def a_star_search(start, goal, game_map):
-    heap = []
-    heapq.heappush(heap, (0, start))
-    came_from = {}
-    cost_so_far = {}
-    came_from[start] = None
-    cost_so_far[start] = 0
+    heap = initialize_heap(start)
+    came_from, cost_so_far = initialize_costs(start)
 
     while heap:
         current = heapq.heappop(heap)[1]
@@ -87,21 +83,40 @@ def a_star_search(start, goal, game_map):
         if current == goal:
             break
 
-        for dx, dy in [(-1,0), (1,0), (0,-1), (0,1)]:
-            next_node = (current[0] + dx, current[1] + dy)
-            if 0 <= next_node[0] < ROWS and 0 <= next_node[1] < COLS:
-                if game_map[next_node[0]][next_node[1]] == 1:
-                    continue  # Es un obstáculo
-                new_cost = cost_so_far[current] + 1
-                if next_node not in cost_so_far or new_cost < cost_so_far[next_node]:
-                    cost_so_far[next_node] = new_cost
-                    priority = new_cost + heuristic(goal, next_node)
-                    heapq.heappush(heap, (priority, next_node))
-                    came_from[next_node] = current
+        process_neighbors(current, goal, game_map, heap, came_from, cost_so_far)
     else:
         return None  # No se encontró camino
 
-    # Reconstruir el camino
+    return reconstruct_path(came_from, start, goal)
+
+def initialize_heap(start):
+    heap = []
+    heapq.heappush(heap, (0, start))
+    return heap
+
+def initialize_costs(start):
+    came_from = {start: None}
+    cost_so_far = {start: 0}
+    return came_from, cost_so_far
+
+def process_neighbors(current, goal, game_map, heap, came_from, cost_so_far):
+    for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+        next_node = (current[0] + dx, current[1] + dy)
+        if is_valid_node(next_node, game_map):
+            new_cost = cost_so_far[current] + 1
+            if next_node not in cost_so_far or new_cost < cost_so_far[next_node]:
+                update_costs(next_node, new_cost, goal, heap, came_from, cost_so_far, current)
+
+def is_valid_node(node, game_map):
+    return 0 <= node[0] < ROWS and 0 <= node[1] < COLS and game_map[node[0]][node[1]] != 1
+
+def update_costs(next_node, new_cost, goal, heap, came_from, cost_so_far, current):
+    cost_so_far[next_node] = new_cost
+    priority = new_cost + heuristic(goal, next_node)
+    heapq.heappush(heap, (priority, next_node))
+    came_from[next_node] = current
+
+def reconstruct_path(came_from, start, goal):
     path = []
     current = goal
     while current != start:
