@@ -20,7 +20,7 @@ RED = (255, 0, 0)
 TILE_SIZE = 30
 ROWS, COLS = HEIGHT // TILE_SIZE, WIDTH // TILE_SIZE
 
-# Rana (jugador)
+# caballo (jugador)
 frog_pos = (ROWS - 1, random.randint(0, COLS - 1))  # Posición inicial (abajo)
 goal_pos = (0, random.randint(0, COLS - 1))  # Meta (arriba)
 
@@ -38,11 +38,11 @@ obstacle_img = pygame.transform.scale(obstacle_img, (TILE_SIZE, TILE_SIZE))
 goal_img = pygame.image.load("meta.png")
 goal_img = pygame.transform.scale(goal_img, (TILE_SIZE, TILE_SIZE))
 
-# Funciones auxiliares para convertir posiciones a letras (A1, B2, etc.)
+# Convertir posiciones a letras (A1, B2, etc.)
 def get_cell_name(row, col):
     return chr(65 + row) + str(col + 1)
 
-# Funciones para crear y mover obstáculos
+# Crear y mover obstáculos
 def create_obstacles():
     global obstacles
     obstacles = []
@@ -133,7 +133,7 @@ def draw_grid(frog_pos, path=None):
             pygame.draw.rect(WINDOW, WHITE, rect)
             pygame.draw.rect(WINDOW, BLACK, rect, 1)
     
-    # Dibujar jugador (rana)
+    # Dibujar jugador (caballo)
     WINDOW.blit(player_img, (frog_pos[1] * TILE_SIZE, frog_pos[0] * TILE_SIZE))
 
     # Dibujar meta
@@ -189,14 +189,14 @@ def main():
                 next_cell = get_cell_name(position[0], position[1])
                 print(f"Caballo se mueve de {current_cell} a {next_cell}")
 
-                # Mover la rana a la siguiente posición
+                # Mover el caballo a la siguiente posición
                 frog_pos_current = position
 
                 # Actualizar obstáculos y mapa
                 move_obstacles()
                 game_map = get_game_map()
 
-                # Si hay un obstáculo en la posición de la rana, termina el movimiento y el juego
+                # Si hay un obstáculo en la posición de el caballo, termina el movimiento y el juego
                 if game_map[position[0]][position[1]] == 1:
                     print("El caballo ha sido golpeado por un obstáculo.")
                     WINDOW.fill(WHITE)
@@ -211,7 +211,7 @@ def main():
                 pygame.display.update()
                 clock.tick(10)
 
-                # Si la rana llega a la meta
+                # Si el caballo llega a la meta
                 if position == goal_pos:
                     print("¡El caballo ha llegado a la meta!")
                     game_over = True  # Establecer la bandera de que el juego ha terminado
